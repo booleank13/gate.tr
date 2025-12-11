@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gate.tr Interstitial - Model 4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .ad-container {
+            width: 320px;
+            height: 480px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+        }
+
+        /* Close Button */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 28px;
+            height: 28px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 200;
+        }
+
+        /* --- LAYER 1: THE REVEAL (UNDERNEATH) --- */
+        .reveal-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0d1318 0%, #1a2a3a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 1;
+        }
+
+        /* Branding in Reveal */
+        .brand-logo {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 20px;
+        }
+
+        .promo-title {
+            color: #00D395;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(0, 211, 149, 0.5);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .promo-sub {
+            color: white;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .cta-btn {
+            background: white;
+            color: #0d1318;
+            padding: 15px 35px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 16px;
+            text-decoration: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            background: #00D395;
+            color: white;
+        }
+
+        /* --- LAYER 2: THE SCRATCH SURFACE (CANVAS) --- */
+        #scratchCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            cursor: pointer; /* Fallback */
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="white" stroke="%23000" stroke-width="2"/></svg>') 12 12, auto;
+            transition: opacity 0.8s;
+        }
+
+        .hand-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 101;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        .hand-icon {
+            width: 40px;
+            height: 40px;
+            fill: white;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            animation: scratchMotion 1.5s infinite;
+        }
+
+        .hand-text {
+            color: white;
+            font-weight: 700;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            font-size: 14px;
+        }
+
+        @keyframes scratchMotion {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-20px, 10px) rotate(-10deg); }
+            50% { transform: translate(20px, -10px) rotate(10deg); }
+            75% { transform: translate(-10px, -10px) rotate(-5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Confetti for win */
+        .confetti-piece {
+            position: absolute;
+            width: 8px;
+            height: 16px;
+            background: #ffd300;
+            top: -20px;
+            opacity: 0;
+            z-index: 50;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="ad-container">
+        <button class="close-btn" id="closeBtn">&times;</button>
+
+        <!-- Reveal Content -->
+        <div class="reveal-layer">
+            <svg class="brand-logo" viewBox="0 0 100 100" fill="none">
+                 <path d="M50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90C72.0914 90 90 72.0914 90 50" stroke="#00D395" stroke-width="8"/>
+                 <path d="M90 50H50V25" stroke="#00D395" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="promo-title">100 USDT</div>
+            <p class="promo-sub">Hoş Geldin Ödülü<br>Sizi Bekliyor!</p>
+            <a href="https://www.gate.tr/tr" target="_blank" class="cta-btn">Hemen Al</a>
+        </div>
+
+        <!-- Scratch Surface -->
+        <canvas id="scratchCanvas" width="320" height="480"></canvas>
+
+        <!-- Hint -->
+        <div class="hand-hint" id="handHint">
+            <svg class="hand-icon" viewBox="0 0 24 24">
+                <path d="M12 2C11.5 2 11 2.5 11 3V11.5C11 11.5 8.5 9.5 7.5 9.5C6.5 9.5 5.5 10.5 6 11.5L9 17.5C10 19.5 12 21 15 21H18C19.5 21 21 19.5 21 18V9C21 8 20 7 19 7C18.5 7 18 7.5 18 8V3C18 2.5 17.5 2 17 2C16.5 2 16 2.5 16 3V3C15.5 3 15 3 15 3C15 2.5 14.5 2 14 2C13.5 2 13 2.5 13 3V3C12.5 3 12 2 12 2Z"/>
+            </svg>
+            <div class="hand-text">Kazımak için Dokun</div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('scratchCanvas');
+            const ctx = canvas.getContext('2d');
+            const closeBtn = document.getElementById('closeBtn');
+            const handHint = document.getElementById('handHint');
+            const container = document.querySelector('.ad-container');
+
+            const width = 320;
+            const height = 480;
+            let isDrawing = false;
+            let finished = false;
+
+            // 1. Prepare the Scratch Layer (Overlay)
+            // Create a gradient or pattern
+            const grad = ctx.createLinearGradient(0, 0, width, height);
+            grad.addColorStop(0, '#333');
+            grad.addColorStop(0.5, '#555');
+            grad.addColorStop(1, '#333');
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Add Gate Logo Pattern on top (subtle)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.rotate(-Math.PI / 4);
+            for(let i=-200; i<600; i+=100) {
+                for(let j=-200; j<600; j+=80) {
+                    ctx.fillText('Gate.tr', i, j);
+                }
+            }
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+
+            // Overlay Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Segoe UI, sans-serif';
+            ctx.textAlign = 'center';
+            // We use the HTML hint instead for animation, but this is a fallback if needed
+
+            // 2. Scratch Logic
+            // We use 'destination-out' to erase pixels
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 40;
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                let clientX, clientY;
+
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    clientX = e.changedTouches[0].clientX;
+                    clientY = e.changedTouches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            function scratch(e) {
+                if (!isDrawing || finished) return;
+                e.preventDefault();
+
+                const pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+
+                // Hide hint on first scratch
+                if (handHint.style.opacity !== '0') {
+                    handHint.style.opacity = '0';
+                    setTimeout(() => handHint.style.display = 'none', 300);
+                }
+
+                // Throttle check for performance
+                if (Math.random() > 0.8) checkPercentage();
+            }
+
+            function startScratch(e) {
+                if (finished) return;
+                isDrawing = true;
+                const pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            }
+
+            function endScratch() {
+                isDrawing = false;
+            }
+
+            // Events
+            canvas.addEventListener('mousedown', startScratch);
+            canvas.addEventListener('mousemove', scratch);
+            canvas.addEventListener('mouseup', endScratch);
+
+            canvas.addEventListener('touchstart', startScratch, {passive: false});
+            canvas.addEventListener('touchmove', scratch, {passive: false});
+            canvas.addEventListener('touchend', endScratch);
+
+            // 3. Percentage Check to Auto-Complete
+            function checkPercentage() {
+                // Sampling pixels (checking every 10th pixel for speed)
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+                let transparentCount = 0;
+                const sampleRate = 40; // High number = less accurate but faster
+
+                for (let i = 0; i < pixels.length; i += sampleRate) {
+                    // Alpha channel is every 4th byte (i+3)
+                    if (pixels[i + 3] < 128) {
+                        transparentCount++;
+                    }
+                }
+
+                const totalPixelsToCheck = pixels.length / sampleRate;
+                const percentage = (transparentCount / totalPixelsToCheck) * 100;
+
+                if (percentage > 40) { // If 40% is scratched
+                    finishAnimation();
+                }
+            }
+
+            function finishAnimation() {
+                finished = true;
+                canvas.style.transition = 'opacity 0.6s';
+                canvas.style.opacity = '0';
+                setTimeout(() => {
+                    canvas.style.display = 'none';
+                    spawnConfetti();
+                }, 600);
+            }
+
+            // 4. Confetti Effect
+            function spawnConfetti() {
+                const colors = ['#00D395', '#fff', '#FFD700'];
+                for (let i = 0; i < 50; i++) {
+                    const el = document.createElement('div');
+                    el.classList.add('confetti-piece');
+                    el.style.left = Math.random() * 100 + '%';
+                    el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    el.style.animation = `confettiFall ${2 + Math.random() * 2}s linear forwards`;
+                    el.style.animationDelay = Math.random() * 0.5 + 's';
+                    container.appendChild(el);
+                }
+
+                // Add CSS for confetti via JS to ensure it works
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    @keyframes confettiFall {
+                        to { transform: translateY(500px) rotate(720deg); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Close Logic
+            closeBtn.addEventListener('click', () => {
+                container.style.opacity = '0';
+                setTimeout(() => console.log('Ad closed'), 500);
+            });
+        });
+    </script>
+</body>
+</html>
