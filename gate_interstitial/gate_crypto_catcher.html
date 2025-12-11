@@ -71,6 +71,7 @@
             font-size: 14px;
             box-shadow: 0 0 10px rgba(0, 211, 149, 0.5);
             cursor: grab;
+            transition: transform 0.1s ease-out;
         }
 
         #basket::before {
@@ -104,6 +105,22 @@
         .crypto.eth { background: #627EEA; color: white; }
         .crypto.usdt { background: #26A17B; color: white; }
         .crypto.gt { background: #00D395; color: black; }
+        .crypto.bear { background: #FF4D4D; color: white; }
+
+        .particle {
+            position: absolute;
+            font-weight: bold;
+            color: #00D395;
+            font-size: 20px;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 20;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-30px) scale(1.5); opacity: 0; }
+        }
 
         #overlay {
             position: absolute;
@@ -176,6 +193,8 @@
         let gameActive = true;
         let spawnInterval;
         let fallingItems = [];
+        let gameSpeedMultiplier = 1;
+        let lastMouseX = 0;
 
         // Cryptos to spawn
         const cryptos = [
@@ -196,6 +215,13 @@
             if (newLeft > containerRect.width - basketWidth / 2) newLeft = containerRect.width - basketWidth / 2;
 
             basket.style.left = newLeft + 'px';
+
+            // Tilt effect
+            const deltaX = x - lastMouseX;
+            const tilt = Math.max(Math.min(deltaX * 0.5, 20), -20);
+            basket.style.transform = `translateX(-50%) rotate(${tilt}deg)`;
+
+            lastMouseX = x;
         }
 
         // Mouse/Touch events
@@ -212,10 +238,18 @@
             if (!gameActive) return;
 
             const crypto = document.createElement('div');
-            const data = cryptos[Math.floor(Math.random() * cryptos.length)];
+            let isBear = false;
 
-            crypto.classList.add('crypto', data.type);
-            crypto.textContent = data.text;
+            // 20% chance to spawn a bear (obstacle)
+            if (Math.random() < 0.2) {
+                isBear = true;
+                crypto.classList.add('crypto', 'bear');
+                crypto.innerHTML = '&#9660;'; // Down arrow
+            } else {
+                const data = cryptos[Math.floor(Math.random() * cryptos.length)];
+                crypto.classList.add('crypto', data.type);
+                crypto.textContent = data.text;
+            }
 
             const containerWidth = gameContainer.offsetWidth;
             const startLeft = Math.random() * (containerWidth - 40);
@@ -227,8 +261,19 @@
 
             fallingItems.push({
                 element: crypto,
-                speed: 3 + Math.random() * 2 // Random speed between 3 and 5
+                speed: (3 + Math.random() * 2) * gameSpeedMultiplier,
+                isBear: isBear
             });
+        }
+
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.textContent = '+1';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            gameContainer.appendChild(particle);
+            setTimeout(() => particle.remove(), 800);
         }
 
         // Game loop
@@ -246,29 +291,43 @@
 
                 // Check overlap
                 if (
-                    itemRect.bottom >= basketRect.top + 10 && // Allow a bit of overlap into the basket opening
+                    itemRect.bottom >= basketRect.top + 10 &&
                     itemRect.top < basketRect.bottom &&
                     itemRect.right >= basketRect.left &&
                     itemRect.left <= basketRect.right
                 ) {
                     // Caught!
-                    caught++;
-                    item.element.remove();
-                    fallingItems.splice(index, 1);
+                    if (item.isBear) {
+                        // Caught a bear - Lose!
+                        endGame(false);
+                    } else {
+                        caught++;
+                        // Speed up slightly
+                        gameSpeedMultiplier += 0.05;
 
-                    if (caught >= 5) {
-                        endGame(true);
+                        // Visual effect
+                        createParticle(itemRect.left, itemRect.top);
+
+                        item.element.remove();
+                        fallingItems.splice(index, 1);
+
+                        if (caught >= 5) {
+                            endGame(true);
+                        }
                     }
                 }
                 // Missed
                 else if (newTop > gameContainer.offsetHeight) {
-                    missed++;
+                    // Missed normal items count against you, missing bears is good
+                    if (!item.isBear) {
+                        missed++;
+                        if (missed >= 3) {
+                            endGame(false);
+                        }
+                    }
+
                     item.element.remove();
                     fallingItems.splice(index, 1);
-
-                    if (missed >= 3) {
-                        endGame(false);
-                    }
                 }
             });
 
