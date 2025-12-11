@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gate.tr Asset Scanner</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Exo 2', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #container {
+            width: 320px;
+            height: 480px;
+            position: relative;
+            background: radial-gradient(circle at 50% 30%, #1a2a3a 0%, #000000 90%);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        /* HUD Overlay */
+        .hud-line {
+            position: absolute;
+            background: rgba(0, 211, 149, 0.2);
+            pointer-events: none;
+        }
+        .hud-line.top { top: 40px; left: 20px; right: 20px; height: 1px; }
+        .hud-line.bottom { bottom: 130px; left: 20px; right: 20px; height: 1px; }
+
+        /* Close Button */
+        #close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+
+        /* Title */
+        #header {
+            position: absolute;
+            top: 50px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            z-index: 10;
+        }
+        #header h2 {
+            margin: 0;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 211, 149, 0.5);
+        }
+        #header p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            color: #00D395;
+        }
+
+        /* Scanner/Portal */
+        #scanner-zone {
+            position: absolute;
+            top: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+
+        .scanner-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 211, 149, 0.3);
+            box-shadow: 0 0 15px rgba(0, 211, 149, 0.1);
+        }
+
+        .ring-1 { width: 100%; height: 100%; border-left-color: #00D395; animation: spin 4s linear infinite; }
+        .ring-2 { width: 80%; height: 80%; border-right-color: #00D395; animation: spin 6s linear infinite reverse; }
+        .ring-3 { width: 60%; height: 60%; border-top-color: #00D395; animation: spin 2s linear infinite; }
+
+        .scanner-core {
+            width: 40%;
+            height: 40%;
+            background: radial-gradient(circle, rgba(0,211,149,0.2), transparent);
+            border-radius: 50%;
+            animation: pulse-core 2s ease-in-out infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse-core {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .drop-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Cards Container */
+        #cards-container {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            height: 90px;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .asset-card {
+            width: 70px;
+            height: 70px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #333;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: grab;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            position: relative; /* Context for absolute */
+        }
+
+        .asset-card:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
+        .asset-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .asset-name {
+            font-size: 10px;
+            color: #888;
+        }
+
+        .card-btc .asset-icon { color: #F7931A; }
+        .card-eth .asset-icon { color: #627EEA; }
+        .card-gt .asset-icon { color: #00D395; }
+
+        /* Animation Layers */
+        #animation-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+
+        .rocket {
+            position: absolute;
+            font-size: 60px;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            animation: fly-up 1.5s ease-out forwards;
+        }
+
+        @keyframes fly-up {
+            0% { top: 100%; transform: translateX(-50%) scale(1); opacity: 1; }
+            100% { top: -20%; transform: translateX(-50%) scale(0.5); opacity: 0; }
+        }
+
+        .network-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: #627EEA;
+            box-shadow: 0 0 20px 10px #627EEA;
+            border-radius: 50%;
+            animation: expand-net 1s ease-out forwards;
+        }
+
+        @keyframes expand-net {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(50); opacity: 0; }
+        }
+
+        /* End Screen */
+        #end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: none; /* Flex on activate */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #end-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+        }
+
+        #end-title {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        #end-desc {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        #cta-btn {
+            background: linear-gradient(90deg, #00D395, #00A876);
+            color: #000;
+            padding: 16px 40px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 16px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(0, 211, 149, 0.4);
+            animation: pulse-btn 2s infinite;
+        }
+
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 20px rgba(0, 211, 149, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(0, 211, 149, 0.7); }
+            100% { box-shadow: 0 0 20px rgba(0, 211, 149, 0.4); }
+        }
+
+        /* Particle */
+        .particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="close-btn">×</div>
+
+    <div id="header">
+        <h2>Market Scanner</h2>
+        <p>Analyze your favorite asset</p>
+    </div>
+
+    <div class="hud-line top"></div>
+    <div class="hud-line bottom"></div>
+
+    <div id="scanner-zone">
+        <div class="scanner-ring ring-1"></div>
+        <div class="scanner-ring ring-2"></div>
+        <div class="scanner-ring ring-3"></div>
+        <div class="scanner-core"></div>
+        <div class="drop-hint">DROP HERE</div>
+    </div>
+
+    <div id="animation-layer"></div>
+
+    <div id="cards-container">
+        <div class="asset-card card-btc" id="btc" data-type="btc">
+            <div class="asset-icon">₿</div>
+            <div class="asset-name">BTC</div>
+        </div>
+        <div class="asset-card card-eth" id="eth" data-type="eth">
+            <div class="asset-icon">Ξ</div>
+            <div class="asset-name">ETH</div>
+        </div>
+        <div class="asset-card card-gt" id="gt" data-type="gt">
+            <div class="asset-icon">G</div>
+            <div class="asset-name">GT</div>
+        </div>
+    </div>
+
+    <div id="end-screen">
+        <div id="end-icon">🚀</div>
+        <div id="end-title">Analysis Complete</div>
+        <div id="end-desc">Strong Buy Signal Detected on 1H Timeframe.</div>
+        <a href="https://www.gate.com/tr" target="_blank" id="cta-btn">Trade Now</a>
+    </div>
+</div>
+
+<script>
+    // Elements
+    const container = document.getElementById('container');
+    const scanner = document.getElementById('scanner-zone');
+    const cards = document.querySelectorAll('.asset-card');
+    const endScreen = document.getElementById('end-screen');
+    const endTitle = document.getElementById('end-title');
+    const endDesc = document.getElementById('end-desc');
+    const endIcon = document.getElementById('end-icon');
+    const animLayer = document.getElementById('animation-layer');
+    const closeBtn = document.getElementById('close-btn');
+
+    closeBtn.addEventListener('click', () => {
+        container.style.display = 'none';
+    });
+
+    // Interaction Logic
+    let activeCard = null;
+    let startX, startY, initialX, initialY;
+    let cardRect, scannerRect;
+
+    cards.forEach(card => {
+        card.addEventListener('touchstart', handleStart, {passive: false});
+        card.addEventListener('mousedown', handleStart);
+    });
+
+    function handleStart(e) {
+        e.preventDefault();
+        activeCard = e.currentTarget;
+
+        // Visual feedback
+        activeCard.style.zIndex = 100;
+        activeCard.style.transition = 'none';
+
+        if(e.type === 'touchstart') {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        } else {
+            startX = e.clientX;
+            startY = e.clientY;
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+        }
+
+        // Cache positions for collision detection
+        scannerRect = scanner.getBoundingClientRect();
+
+        // Add move listener for touch
+        if(e.type === 'touchstart') {
+            document.addEventListener('touchmove', handleMove, {passive: false});
+            document.addEventListener('touchend', handleEnd, {passive: false});
+        }
+    }
+
+    function handleMove(e) {
+        if (!activeCard) return;
+        e.preventDefault();
+
+        let clientX, clientY;
+        if(e.type.includes('touch')) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+
+        activeCard.style.transform = `translate(${dx}px, ${dy}px) scale(1.1)`;
+
+        // Scanner Highlight
+        const cardRect = activeCard.getBoundingClientRect();
+        if (isOverlapping(cardRect, scannerRect)) {
+            scanner.querySelector('.ring-1').style.borderColor = "#fff";
+        } else {
+            scanner.querySelector('.ring-1').style.borderColor = "#00D395";
+        }
+    }
+
+    function handleEnd(e) {
+        if (!activeCard) return;
+
+        // Cleanup listeners
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+
+        const cardRect = activeCard.getBoundingClientRect();
+
+        if (isOverlapping(cardRect, scannerRect)) {
+            // Success Drop
+            triggerSuccess(activeCard.dataset.type);
+            activeCard.style.opacity = 0; // Hide card
+        } else {
+            // Revert
+            activeCard.style.transition = 'transform 0.3s ease';
+            activeCard.style.transform = 'translate(0, 0) scale(1)';
+            activeCard.style.zIndex = '';
+        }
+
+        activeCard = null;
+        scanner.querySelector('.ring-1').style.borderColor = "#00D395";
+    }
+
+    function isOverlapping(rect1, rect2) {
+        const overlapX = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
+        const overlapY = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
+        const overlapArea = overlapX * overlapY;
+        const cardArea = rect1.width * rect1.height;
+        return overlapArea > (cardArea * 0.3); // 30% overlap required
+    }
+
+    function triggerSuccess(type) {
+        // Hide other cards
+        cards.forEach(c => {
+            if(c !== activeCard) c.style.opacity = '0';
+        });
+
+        animLayer.style.display = 'block';
+
+        // Specific Animations
+        if (type === 'btc') {
+            // Rocket
+            const rocket = document.createElement('div');
+            rocket.className = 'rocket';
+            rocket.textContent = '🚀';
+            animLayer.appendChild(rocket);
+
+            setTimeout(() => showEnd("Moon Mission", "Bitcoin is ready for takeoff. Don't miss the ride!", "🚀"), 1500);
+        } else if (type === 'eth') {
+            // Network
+            const net = document.createElement('div');
+            net.className = 'network-grid';
+            animLayer.appendChild(net);
+
+            setTimeout(() => showEnd("Smart Future", "Ethereum ecosystem is expanding. Join the network.", "Ξ"), 1000);
+        } else if (type === 'gt') {
+            // Gate Token / Gold
+            createConfetti();
+            setTimeout(() => showEnd("VIP Status", "Gate Token holders get exclusive benefits. Upgrade now.", "👑"), 1500);
+        }
+    }
+
+    function showEnd(title, desc, icon) {
+        endTitle.textContent = title;
+        endDesc.textContent = desc;
+        endIcon.textContent = icon;
+
+        endScreen.style.display = 'flex';
+        // Force reflow
+        void endScreen.offsetWidth;
+        endScreen.style.opacity = '1';
+    }
+
+    function createConfetti() {
+        for(let i=0; i<30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.width = Math.random() * 8 + 2 + 'px';
+            p.style.height = p.style.width;
+            p.style.background = Math.random() > 0.5 ? '#00D395' : '#FFD700';
+            p.style.left = '50%';
+            p.style.top = '40%';
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 200 + 50;
+
+            animLayer.appendChild(p);
+
+            const anim = p.animate([
+                { transform: 'translate(-50%, -50%)' },
+                { transform: `translate(${Math.cos(angle)*velocity}px, ${Math.sin(angle)*velocity}px)`, opacity: 0 }
+            ], {
+                duration: 1000,
+                easing: 'ease-out'
+            });
+
+            anim.onfinish = () => p.remove();
+        }
+    }
+
+</script>
+
+</body>
+</html>
