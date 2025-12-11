@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gate.tr Interstitial</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0d0d0d;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #container {
+            width: 320px;
+            height: 480px;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        /* Close Button */
+        #close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding-top: 10px;
+        }
+
+        #score-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        #score-val {
+            color: #00D395;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* Target Area */
+        #target-area {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px dashed #00D395;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        #target-area.pulse {
+            animation: pulse 1.5s infinite;
+            background-color: rgba(0, 211, 149, 0.1);
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 0 0 rgba(0, 211, 149, 0.7); }
+            70% { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 0 20px rgba(0, 211, 149, 0); }
+            100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 0 0 rgba(0, 211, 149, 0); }
+        }
+
+        #gate-logo {
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        #gate-logo span {
+            color: #00D395;
+        }
+
+        /* Draggables */
+        .coin {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+            border: 2px solid #333;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            cursor: grab;
+            z-index: 10;
+        }
+
+        .coin:active {
+            cursor: grabbing;
+        }
+
+        .coin.btc { top: 100px; left: 40px; border-color: #F7931A; color: #F7931A; }
+        .coin.eth { top: 120px; right: 40px; border-color: #627EEA; color: #627EEA; }
+        .coin.gt { top: 180px; left: 125px; border-color: #00D395; color: #00D395; }
+
+        /* Guide */
+        #guide-text {
+            position: absolute;
+            top: 280px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0.8;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+
+        /* Success Message */
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: #00D395;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            z-index: 20;
+            width: 80%;
+        }
+
+        /* End Screen */
+        #end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #end-title {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #end-score {
+            color: #00D395;
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        #cta-btn {
+            background-color: #00D395;
+            color: #000;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: none;
+            font-size: 18px;
+            animation: pulse-btn 2s infinite;
+        }
+
+        @keyframes pulse-btn {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Particles */
+        .particle {
+            position: absolute;
+            background: #00D395;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="close-btn">×</div>
+
+    <div id="top-bar">
+        <div id="score-label">PORTFOLIO VALUE</div>
+        <div id="score-val">$0</div>
+    </div>
+
+    <div id="guide-text">Drag Coins to Wallet</div>
+
+    <div id="target-area" class="pulse">
+        <div id="gate-logo">
+            Gate<span>.tr</span><br>
+            <div style="font-size: 10px; color: #888; margin-top: 5px;">WALLET</div>
+        </div>
+    </div>
+
+    <div class="coin btc" id="coin-btc" data-val="65000">BTC</div>
+    <div class="coin eth" id="coin-eth" data-val="3500">ETH</div>
+    <div class="coin gt" id="coin-gt" data-val="12000">GT</div>
+
+    <div id="message"></div>
+
+    <div id="end-screen">
+        <div id="end-title">Portfolio Ready!</div>
+        <div id="end-score">$80,500</div>
+        <a href="https://www.gate.com/tr" target="_blank" id="cta-btn">Start Trading</a>
+    </div>
+</div>
+
+<script>
+    // Game State
+    let score = 0;
+    let coinsCollected = 0;
+    const totalCoins = 3;
+
+    // Elements
+    const container = document.getElementById('container');
+    const target = document.getElementById('target-area');
+    const scoreVal = document.getElementById('score-val');
+    const message = document.getElementById('message');
+    const endScreen = document.getElementById('end-screen');
+    const endScore = document.getElementById('end-score');
+    const closeBtn = document.getElementById('close-btn');
+    const guideText = document.getElementById('guide-text');
+
+    // Close functionality
+    closeBtn.addEventListener('click', () => {
+        container.style.display = 'none'; // In a real ad, this might signal the SDK to close
+    });
+
+    // Coins
+    const coins = document.querySelectorAll('.coin');
+
+    coins.forEach(coin => {
+        // Touch events
+        coin.addEventListener('touchstart', handleStart, {passive: false});
+        coin.addEventListener('touchmove', handleMove, {passive: false});
+        coin.addEventListener('touchend', handleEnd, {passive: false});
+
+        // Mouse events
+        coin.addEventListener('mousedown', handleStart);
+    });
+
+    // Drag logic
+    let activeItem = null;
+    let initialX, initialY;
+    let currentX, currentY;
+    let xOffset = 0, yOffset = 0;
+
+    function handleStart(e) {
+        if (e.target.classList.contains('collected')) return;
+
+        if (e.type === 'touchstart') {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+        }
+
+        activeItem = e.target;
+
+        // Get current transform if any
+        const style = window.getComputedStyle(activeItem);
+        const matrix = new WebKitCSSMatrix(style.transform);
+        xOffset = matrix.m41;
+        yOffset = matrix.m42;
+
+        // Recalculate initial relative to current offset
+        if (e.type === 'touchstart') {
+             initialX = e.touches[0].clientX - xOffset;
+             initialY = e.touches[0].clientY - yOffset;
+        } else {
+             initialX = e.clientX - xOffset;
+             initialY = e.clientY - yOffset;
+        }
+    }
+
+    function handleMove(e) {
+        if (!activeItem) return;
+        e.preventDefault();
+
+        let clientX, clientY;
+        if (e.type === 'touchmove') {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        currentX = clientX - initialX;
+        currentY = clientY - initialY;
+
+        xOffset = currentX;
+        yOffset = currentY;
+
+        setTranslate(currentX, currentY, activeItem);
+
+        // Check collision for feedback
+        if (isColliding(activeItem, target)) {
+            target.style.transform = "translateX(-50%) scale(1.2)";
+            target.style.borderColor = "#fff";
+        } else {
+            target.style.transform = "translateX(-50%) scale(1)";
+            target.style.borderColor = "#00D395";
+        }
+    }
+
+    function handleEnd(e) {
+        if (!activeItem) return;
+
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+
+        if (isColliding(activeItem, target)) {
+            // Success Drop
+            collectCoin(activeItem);
+        } else {
+            // Revert
+            activeItem.style.transition = "transform 0.3s ease";
+            setTranslate(0, 0, activeItem);
+            setTimeout(() => {
+                activeItem.style.transition = "";
+            }, 300);
+            xOffset = 0;
+            yOffset = 0;
+        }
+
+        activeItem = null;
+        target.style.transform = "translateX(-50%) scale(1)";
+        target.style.borderColor = "#00D395";
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+    }
+
+    function isColliding(a, b) {
+        const aRect = a.getBoundingClientRect();
+        const bRect = b.getBoundingClientRect();
+
+        return !(
+            ((aRect.top + aRect.height) < (bRect.top)) ||
+            (aRect.top > (bRect.bottom)) ||
+            ((aRect.left + aRect.width) < bRect.left) ||
+            (aRect.left > (bRect.right))
+        );
+    }
+
+    function collectCoin(coin) {
+        coin.classList.add('collected');
+        coin.style.display = 'none'; // Or animate it shrinking into the target
+
+        // Add Score
+        const val = parseInt(coin.getAttribute('data-val'));
+        animateScore(score, score + val);
+        score += val;
+
+        coinsCollected++;
+
+        // Particle effect
+        createParticles(10);
+
+        // Show message
+        showMessage(`+ $${val.toLocaleString()}`);
+
+        if (coinsCollected >= totalCoins) {
+            setTimeout(showEndScreen, 1500);
+        }
+    }
+
+    function animateScore(start, end) {
+        let current = start;
+        const step = Math.ceil((end - start) / 20);
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= end) {
+                current = end;
+                clearInterval(timer);
+            }
+            scoreVal.textContent = `$${current.toLocaleString()}`;
+        }, 20);
+    }
+
+    function showMessage(text) {
+        message.textContent = text;
+        message.style.display = 'block';
+        message.style.opacity = '1';
+
+        // Hide after 1s
+        setTimeout(() => {
+            message.style.display = 'none';
+        }, 1000);
+    }
+
+    function showEndScreen() {
+        endScore.textContent = `$${score.toLocaleString()}`;
+        endScreen.style.display = 'flex';
+        guideText.style.display = 'none';
+    }
+
+    function createParticles(count) {
+        const rect = target.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            p.classList.add('particle');
+            container.appendChild(p);
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 50 + 20;
+
+            const destX = Math.cos(angle) * velocity;
+            const destY = Math.sin(angle) * velocity;
+
+            // Set initial position relative to container
+            // container is relative, particles absolute.
+            // We need to calculate position relative to container top/left
+            const containerRect = container.getBoundingClientRect();
+            const relX = centerX - containerRect.left;
+            const relY = centerY - containerRect.top;
+
+            p.style.left = relX + 'px';
+            p.style.top = relY + 'px';
+
+            // Animate
+            const anim = p.animate([
+                { transform: `translate(0, 0) scale(1)`, opacity: 1 },
+                { transform: `translate(${destX}px, ${destY}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: 600,
+                easing: 'ease-out'
+            });
+
+            anim.onfinish = () => p.remove();
+        }
+    }
+
+</script>
+
+</body>
+</html>
