@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gate.tr Crypto Catcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            touch-action: none; /* Prevent default touch scrolling */
+        }
+
+        body {
+            background-color: #0d1318;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .ad-container {
+            width: 320px;
+            height: 480px;
+            background: linear-gradient(135deg, #1a2a3a 0%, #0d1318 100%);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+
+        /* Close Button */
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 18px;
+            line-height: 24px;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        /* Game UI */
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allow clicks to pass through to game area */
+            z-index: 10;
+        }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 15px;
+            border: 1px solid #00D395;
+        }
+
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            width: 100%;
+            animation: pulse 1s infinite alternate;
+        }
+
+        .instruction.hide {
+            display: none;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.8; transform: translate(-50%, -50%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        /* Game Elements */
+        .catcher {
+            position: absolute;
+            bottom: 20px;
+            left: 50%; /* Start center */
+            transform: translateX(-50%);
+            width: 80px;
+            height: 60px;
+            background: #2a2a2a;
+            border: 2px solid #00D395;
+            border-radius: 0 0 15px 15px;
+            z-index: 5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(0, 211, 149, 0.3);
+        }
+
+        .catcher::after {
+            content: 'Gate.tr';
+            color: #00D395;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .catcher-lid {
+            position: absolute;
+            top: -10px;
+            width: 90px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+
+        .coin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f7931a; /* BTC orange default */
+            border: 2px solid #fff;
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: white;
+            font-size: 10px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        /* Result Overlay */
+        .result-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 19, 24, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .result-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .logo-img {
+            width: 100px;
+            margin-bottom: 20px;
+            animation: bounceIn 0.8s;
+        }
+
+        .win-title {
+            font-size: 28px;
+            color: #00D395;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .win-desc {
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .cta-btn {
+            background: #00D395;
+            color: #0d1318;
+            padding: 12px 35px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(0, 211, 149, 0.5);
+            animation: pulseBtn 1.5s infinite;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes pulseBtn {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Particle effects */
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: #00D395;
+            pointer-events: none;
+            border-radius: 50%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="ad-container" id="gameArea">
+        <button class="close-btn" id="closeBtn">&times;</button>
+
+        <div class="game-ui">
+            <div class="score-board">Skor: <span id="score">0</span>/5</div>
+            <div class="instruction" id="instruction">TUTMAK İÇİN<br>SÜRÜKLE!</div>
+        </div>
+
+        <div class="catcher" id="catcher">
+            <div class="catcher-lid"></div>
+        </div>
+
+        <div class="result-overlay" id="resultOverlay">
+            <img src="data:image/png;base64,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" alt="Gate.tr" class="logo-img">
+            <h2 class="win-title">Tebrikler!</h2>
+            <p class="win-desc">100 USDT Hoş Geldin Bonusu Hesabına Tanımlandı</p>
+            <a href="https://www.gate.tr/tr" target="_blank" class="cta-btn">Ödülü Al</a>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.ad-container');
+            const closeBtn = document.getElementById('closeBtn');
+            const catcher = document.getElementById('catcher');
+            const scoreEl = document.getElementById('score');
+            const instruction = document.getElementById('instruction');
+            const resultOverlay = document.getElementById('resultOverlay');
+
+            let score = 0;
+            const targetScore = 5;
+            let gameActive = false;
+            let coins = [];
+
+            // Mouse/Touch Drag Logic
+            let isDragging = false;
+
+            const updateCatcherPos = (clientX) => {
+                if (!gameActive && score < targetScore) {
+                    gameActive = true;
+                    instruction.classList.add('hide');
+                    spawnCoins();
+                }
+                const rect = container.getBoundingClientRect();
+                let x = clientX - rect.left;
+
+                // Clamp
+                x = Math.max(40, Math.min(x, rect.width - 40));
+
+                catcher.style.left = x + 'px';
+            };
+
+            container.addEventListener('mousemove', (e) => {
+                updateCatcherPos(e.clientX);
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Stop scroll
+                updateCatcherPos(e.touches[0].clientX);
+            }, { passive: false });
+
+            closeBtn.addEventListener('click', () => {
+                container.style.display = 'none';
+            });
+
+            // Coin Logic
+            function spawnCoins() {
+                if (!gameActive) return;
+
+                const interval = setInterval(() => {
+                    if (!gameActive) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    createCoin();
+                }, 800);
+            }
+
+            function createCoin() {
+                const coin = document.createElement('div');
+                coin.classList.add('coin');
+                coin.innerText = Math.random() > 0.5 ? 'GATE' : 'BTC';
+
+                // Random X pos
+                const x = Math.random() * (320 - 40) + 10;
+                coin.style.left = x + 'px';
+                coin.style.top = '-40px';
+
+                // Random color
+                if (coin.innerText === 'GATE') {
+                    coin.style.background = '#00D395';
+                    coin.style.color = '#000';
+                }
+
+                container.appendChild(coin);
+                coins.push({ el: coin, y: -40, speed: Math.random() * 2 + 3 });
+            }
+
+            // Game Loop
+            function gameLoop() {
+                if (!gameActive) {
+                    if (score < targetScore) requestAnimationFrame(gameLoop);
+                    return;
+                }
+
+                coins.forEach((coinObj, index) => {
+                    coinObj.y += coinObj.speed;
+                    coinObj.el.style.top = coinObj.y + 'px';
+
+                    // Check Collision
+                    const catcherRect = catcher.getBoundingClientRect();
+                    const coinRect = coinObj.el.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+
+                    // Relative coords collision check roughly
+                    if (coinObj.y > (480 - 80) && coinObj.y < (480 - 20)) {
+                        const catcherCenter = parseFloat(catcher.style.left);
+                        const coinCenter = parseFloat(coinObj.el.style.left) + 15;
+
+                        if (Math.abs(catcherCenter - coinCenter) < 45) {
+                            // Caught!
+                            score++;
+                            scoreEl.innerText = score;
+
+                            // Effect
+                            createParticle(coinCenter, 420);
+
+                            // Remove
+                            coinObj.el.remove();
+                            coins.splice(index, 1);
+
+                            // Win Condition
+                            if (score >= targetScore) {
+                                endGame();
+                            }
+                        }
+                    }
+
+                    // Missed
+                    if (coinObj.y > 500) {
+                        coinObj.el.remove();
+                        coins.splice(index, 1);
+                    }
+                });
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            function createParticle(x, y) {
+                for(let i=0; i<5; i++) {
+                    const p = document.createElement('div');
+                    p.classList.add('particle');
+                    p.style.left = x + 'px';
+                    p.style.top = y + 'px';
+                    container.appendChild(p);
+
+                    const angle = Math.random() * Math.PI * 2;
+                    const vel = Math.random() * 5;
+                    const dx = Math.cos(angle) * vel;
+                    const dy = Math.sin(angle) * vel;
+
+                    let frame = 0;
+                    function anim() {
+                        frame++;
+                        p.style.left = (parseFloat(p.style.left) + dx) + 'px';
+                        p.style.top = (parseFloat(p.style.top) + dy) + 'px';
+                        p.style.opacity = 1 - (frame/20);
+
+                        if(frame < 20) requestAnimationFrame(anim);
+                        else p.remove();
+                    }
+                    anim();
+                }
+            }
+
+            function endGame() {
+                gameActive = false;
+                setTimeout(() => {
+                    resultOverlay.classList.add('show');
+                }, 500);
+            }
+
+            // Start loop
+            requestAnimationFrame(gameLoop);
+        });
+    </script>
+</body>
+</html>
