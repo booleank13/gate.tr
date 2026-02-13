@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gate.tr Crypto Catcher</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 320px;
+            height: 480px;
+            background-color: #0d0d0d;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        #bg-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
+            filter: brightness(0) invert(1);
+        }
+
+        #close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        #basket {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 40px;
+            background-color: #00D395;
+            border-radius: 0 0 10px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 0 10px rgba(0, 211, 149, 0.5);
+            cursor: grab;
+            transition: transform 0.1s ease-out, width 0.3s ease;
+        }
+
+        #basket::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 5px;
+            right: 5px; /* Use right instead of width to auto-stretch */
+            height: 30px;
+            border: 4px solid #00D395;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            box-sizing: border-box;
+        }
+
+        .crypto {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .crypto.btc { background: #F7931A; color: white; }
+        .crypto.eth { background: #627EEA; color: white; }
+        .crypto.usdt { background: #26A17B; color: white; }
+        .crypto.gt { background: #00D395; color: black; }
+        .crypto.bear { background: #FF4D4D; color: white; }
+        .crypto.rocket { background: #9B59B6; color: white; font-size: 20px; }
+
+        .particle {
+            position: absolute;
+            font-weight: bold;
+            color: #00D395;
+            font-size: 20px;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 20;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-30px) scale(1.5); opacity: 0; }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 150;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            z-index: 200;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #overlay h2 {
+            margin-top: 0;
+            color: #00D395;
+        }
+
+        #overlay p {
+            margin: 10px 0 20px;
+            font-size: 18px;
+        }
+
+        #overlay button {
+            background: #00D395;
+            border: none;
+            padding: 10px 20px;
+            color: black;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Canvas for Chart -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Embedded Logo -->
+    <img id="bg-logo" src="data:image/png;base64,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" alt="Gate.io">
+
+    <div id="close-btn">&times;</div>
+
+    <div id="game-container">
+        <div id="basket">Gate.tr</div>
+    </div>
+
+    <div id="overlay">
+        <h2 id="overlay-title">Oyun Bitti!</h2>
+        <p id="overlay-msg">...</p>
+        <button id="overlay-btn" onclick="handleOverlayClick()">Devam Et</button>
+    </div>
+
+    <script>
+        const basket = document.getElementById('basket');
+        const gameContainer = document.getElementById('game-container');
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayMsg = document.getElementById('overlay-msg');
+        const overlayBtn = document.getElementById('overlay-btn');
+
+        let caught = 0;
+        let missed = 0;
+        let gameActive = true;
+        let spawnInterval;
+        let fallingItems = [];
+        let gameSpeedMultiplier = 1;
+        let lastMouseX = 0;
+        let powerUpActive = false;
+
+        // Background Chart Logic
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let chartData = [];
+        let chartStep = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Initialize random data
+            chartData = [];
+            for (let i = 0; i < canvas.width / 5; i++) {
+                chartData.push(canvas.height / 2 + (Math.random() - 0.5) * 100);
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function updateChart() {
+            // Shift data
+            chartData.shift();
+            const lastVal = chartData[chartData.length - 1];
+            // Random walk
+            let nextVal = lastVal + (Math.random() - 0.5) * 20;
+            // Clamp
+            if (nextVal < 50) nextVal = 50;
+            if (nextVal > canvas.height - 50) nextVal = canvas.height - 50;
+            chartData.push(nextVal);
+
+            // Draw
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.strokeStyle = '#00D395';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < chartData.length; i++) {
+                if (i === 0) ctx.moveTo(i * 5, chartData[i]);
+                else ctx.lineTo(i * 5, chartData[i]);
+            }
+            ctx.stroke();
+
+            // Gradient fill
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.closePath();
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(0, 211, 149, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 211, 149, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            if (gameActive) requestAnimationFrame(updateChart);
+        }
+        updateChart();
+
+
+        // Cryptos to spawn
+        const cryptos = [
+            { type: 'btc', text: 'BTC' },
+            { type: 'eth', text: 'ETH' },
+            { type: 'usdt', text: 'USDT' },
+            { type: 'gt', text: 'GT' }
+        ];
+
+        // Basket movement
+        function moveBasket(x) {
+            const containerRect = gameContainer.getBoundingClientRect();
+            let newLeft = x - containerRect.left;
+
+            // Constrain within bounds
+            const basketWidth = basket.offsetWidth;
+            if (newLeft < basketWidth / 2) newLeft = basketWidth / 2;
+            if (newLeft > containerRect.width - basketWidth / 2) newLeft = containerRect.width - basketWidth / 2;
+
+            basket.style.left = newLeft + 'px';
+
+            // Tilt effect
+            const deltaX = x - lastMouseX;
+            const tilt = Math.max(Math.min(deltaX * 0.5, 20), -20);
+            basket.style.transform = `translateX(-50%) rotate(${tilt}deg)`;
+
+            lastMouseX = x;
+        }
+
+        // Mouse/Touch events
+        document.addEventListener('mousemove', (e) => {
+            if (gameActive) moveBasket(e.clientX);
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (gameActive) moveBasket(e.touches[0].clientX);
+        }, { passive: false });
+
+        // Spawn logic
+        function spawnCrypto() {
+            if (!gameActive) return;
+
+            const crypto = document.createElement('div');
+            let isBear = false;
+            let isRocket = false;
+            const rand = Math.random();
+
+            if (rand < 0.05 && !powerUpActive) {
+                // 5% chance for Rocket (Power Up)
+                isRocket = true;
+                crypto.classList.add('crypto', 'rocket');
+                crypto.textContent = '🚀';
+            } else if (rand < 0.25) {
+                // 20% chance for Bear (Obstacle) (adjusted for rocket chance)
+                isBear = true;
+                crypto.classList.add('crypto', 'bear');
+                crypto.innerHTML = '&#9660;';
+            } else {
+                const data = cryptos[Math.floor(Math.random() * cryptos.length)];
+                crypto.classList.add('crypto', data.type);
+                crypto.textContent = data.text;
+            }
+
+            const containerWidth = gameContainer.offsetWidth;
+            const startLeft = Math.random() * (containerWidth - 40);
+
+            crypto.style.left = startLeft + 'px';
+            crypto.style.top = '-50px';
+
+            gameContainer.appendChild(crypto);
+
+            fallingItems.push({
+                element: crypto,
+                speed: (3 + Math.random() * 2) * gameSpeedMultiplier,
+                isBear: isBear,
+                isRocket: isRocket
+            });
+        }
+
+        function activatePowerUp() {
+            powerUpActive = true;
+            basket.style.width = '120px'; // 50% larger
+            basket.style.boxShadow = '0 0 20px #9B59B6';
+            basket.style.backgroundColor = '#9B59B6';
+
+            setTimeout(() => {
+                powerUpActive = false;
+                basket.style.width = '80px';
+                basket.style.boxShadow = '0 0 10px rgba(0, 211, 149, 0.5)';
+                basket.style.backgroundColor = '#00D395';
+            }, 5000);
+        }
+
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.textContent = '+1';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            gameContainer.appendChild(particle);
+            setTimeout(() => particle.remove(), 800);
+        }
+
+        // Game loop
+        function update() {
+            if (!gameActive) return;
+
+            fallingItems.forEach((item, index) => {
+                const currentTop = parseFloat(item.element.style.top);
+                const newTop = currentTop + item.speed;
+                item.element.style.top = newTop + 'px';
+
+                // Collision detection
+                const itemRect = item.element.getBoundingClientRect();
+                const basketRect = basket.getBoundingClientRect();
+
+                // Check overlap
+                if (
+                    itemRect.bottom >= basketRect.top + 10 &&
+                    itemRect.top < basketRect.bottom &&
+                    itemRect.right >= basketRect.left &&
+                    itemRect.left <= basketRect.right
+                ) {
+                    // Caught!
+                    if (item.isBear) {
+                        endGame(false);
+                    } else if (item.isRocket) {
+                        activatePowerUp();
+                        item.element.remove();
+                        fallingItems.splice(index, 1);
+                        createParticle(itemRect.left, itemRect.top);
+                    } else {
+                        caught++;
+                        gameSpeedMultiplier += 0.05;
+                        createParticle(itemRect.left, itemRect.top);
+
+                        item.element.remove();
+                        fallingItems.splice(index, 1);
+
+                        if (caught >= 5) {
+                            endGame(true);
+                        }
+                    }
+                }
+                // Missed
+                else if (newTop > gameContainer.offsetHeight) {
+                    // Missed normal items count against you
+                    if (!item.isBear && !item.isRocket) {
+                        missed++;
+                        if (missed >= 3) {
+                            endGame(false);
+                        }
+                    }
+
+                    item.element.remove();
+                    fallingItems.splice(index, 1);
+                }
+            });
+
+            requestAnimationFrame(update);
+        }
+
+        function endGame(win) {
+            gameActive = false;
+            clearInterval(spawnInterval);
+
+            overlay.style.display = 'flex';
+            if (win) {
+                launchConfetti();
+                overlayTitle.textContent = "Tebrikler!";
+                overlayMsg.textContent = "3 Gate Token Kazandınız!";
+                overlayBtn.textContent = "Ödülü Al";
+                overlayBtn.onclick = () => {
+                     window.location.href = "https://www.gate.com/tr";
+                };
+            } else {
+                overlayTitle.textContent = "Oyun Bitti";
+                overlayMsg.textContent = "Dahasını keşfetmek için tıklayınız";
+                overlayBtn.textContent = "Keşfet";
+                overlayBtn.onclick = () => {
+                     // Could redirect to same place or retry. The prompt says "Dahasını keşfetmek için tıklayınız yazacak"
+                     // and usually interstitial ads redirect on click.
+                     window.location.href = "https://www.gate.com/tr";
+                };
+            }
+        }
+
+        function launchConfetti() {
+            for(let i=0; i<50; i++) {
+                const conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + '%';
+                conf.style.top = '-10px';
+                conf.style.backgroundColor = ['#F7931A', '#627EEA', '#00D395', '#FF4D4D'][Math.floor(Math.random()*4)];
+                conf.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+                const speed = 2 + Math.random() * 3;
+                const delay = Math.random() * 2;
+
+                conf.style.transition = `top ${speed}s linear ${delay}s, transform ${speed}s linear ${delay}s`;
+
+                document.body.appendChild(conf);
+
+                // Trigger animation
+                setTimeout(() => {
+                    conf.style.top = '110%';
+                    conf.style.transform = `rotate(${Math.random() * 360 + 360}deg)`;
+                }, 100);
+            }
+        }
+
+        // Handle Overlay Click (for Lose state mostly, or universal)
+        function handleOverlayClick() {
+            // Default handler, overridden in endGame
+             window.location.href = "https://www.gate.com/tr";
+        }
+
+        // Close button
+        document.getElementById('close-btn').addEventListener('click', () => {
+            // Usually closes the ad. Here we can just remove the body or redirect?
+            // For a demo, let's just say "Ad Closed" or reload.
+            // In an interstitial context, this would signal the SDK to close the webview.
+            // We'll just hide the game container and show a message.
+            gameActive = false;
+            clearInterval(spawnInterval);
+            document.body.innerHTML = '<div style="color:white; display:flex; justify-content:center; align-items:center; height:100%;">Reklam Kapatıldı</div>';
+        });
+
+        // Start game
+        spawnInterval = setInterval(spawnCrypto, 1000);
+        update();
+
+    </script>
+</body>
+</html>
